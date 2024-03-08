@@ -14,6 +14,13 @@ app.listen(PORT, () => { console.log(`Server running at http://localhost:${PORT}
 
 app.post('/', (req, res) => {
 
+  if (typeof req?.body !== 'string') {
+    res.status(500).json({
+      success: false,
+      msg: `request body must be string but is "${typeof req?.body}"`
+    });
+  }
+
   const outputSvgFileNoExtNoPath = `${new Date().getTime()}`;
 
   const result = compile(req.body, outputSvgFileNoExtNoPath);
@@ -21,7 +28,7 @@ app.post('/', (req, res) => {
   if (!result.success) {
     res.status(500).json({ success: false, msg: result.msg });
   } else {
-    res.status(200).send({ success: true, outputSvgFileNoExtNoPath });
+    res.status(200).json({ success: true, resSvgFilePath: `/tmp/${outputSvgFileNoExtNoPath}.svg` });
   }
 
 });
