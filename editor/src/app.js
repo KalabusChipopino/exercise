@@ -1,19 +1,5 @@
-import Quill from 'quill';
-import 'quill/dist/quill.snow.css';
-const Inline = Quill.import('blots/inline');
-
-function customButtonHandler() {  
-  //var divElement = document.createElement('div');
-  //divElement.innerHTML = `<div id="complicatedElement"><h1>This is a complicated element</h1><p>... More content ...</p></div>`;
-
-  //quill.insertEmbed(quill.getSelection().index, 'customDiv', divElement);
-  
-  //quill.insertText(0, 'Test', { custom: true });
-  //quill.format('h1', true);
-
-  const index = quill.getSelection().index || 0;
-  quill.insertEmbed(index, 'image', "https://clipart-library.com/image_gallery/396690.png", 'user');
-}
+const axios = require('axios');
+import './index.css';
 
 const quill = new Quill('#editor', {
   theme: 'snow',
@@ -23,44 +9,70 @@ const quill = new Quill('#editor', {
         ['bold', 'italic', 'underline', 'strike'],
         ['image', 'link'],
         [{ 'color': [] }, { 'background': [] }],
-        ['customButton'],
+        ['toolbarLatexBtn'],
       ],
       handlers: {
-        customButton: customButtonHandler,
+        toolbarLatexBtn: toolbarLatexHandler,
       },
     },
   },
 });
 
-const customButton = document.querySelector('.ql-customButton');
-if (customButton) {
-  customButton.innerHTML = 'Σ';
+const toolbarLatexBtn = document.querySelector('.ql-toolbarLatexBtn');
+if (toolbarLatexBtn) {
+  toolbarLatexBtn.innerHTML = 'Σ';
 }
 
-var BlockEmbed = Quill.import('blots/block/embed');
-class CustomDivBlot extends BlockEmbed {
+function toolbarLatexHandler() {
+  const index = quill.getSelection().index || 0;
+  quill.insertEmbed(index, 'customImage', { url: "https://clipart-library.com/image_gallery/396690.png" });
+  quill.setSelection(index + 1);
+}
+
+
+class ImageBlot extends Quill.import('blots/embed') {
   static create(value) {
-    //const node = super.create(value);
-    //node.innerHTML = value.innerHTML;
-    let node = super.create();
-    node.setAttribute('href', url);
-    node.setAttribute('target', '_blank');
-    node.setAttribute('title', node.textContent);
+    const node = super.create();
+    node.setAttribute('src', value.url);
+    node.setAttribute('alt', value.alt || '');
+    node.setAttribute('class', 'latex');
+    node.addEventListener('click', () => {
+      console.log("TODO")
+    });
     return node;
   }
+  static value(node) {
+    return { url: node.getAttribute('src'), alt: node.getAttribute('alt') };
+  }
 }
-CustomDivBlot.blotName = 'customDiv';
-CustomDivBlot.tagName = 'div';
-Quill.register(CustomDivBlot);
+ImageBlot.blotName = 'customImage';
+ImageBlot.tagName = 'img';
+Quill.register(ImageBlot);
 
 
+const post_url = 'http://localhost:3002/';
+document.getElementById('latex-btn').addEventListener('click', () => {
 
+  const value = document.getElementById('latex-textarea')?.value;
 
-
-
-
-class BoldBlot extends Inline {
-  static blotName = 'custom';
-  static tagName = 'h1';
-}
-Quill.register(BoldBlot);
+  axios.post(post_url, value, {
+    headers: {
+      'Content-Type': 'text/plain',
+    },
+  })
+    .then(res => {
+      const resultElm = document.getElementById('latex-result');
+      if(!res?.data?.success) resultElm.value = res.data.msg;
+      else resultElm.value = "success";
+    })
+    .catch(error => {
+      alert("something whent wrong");
+      if (error.response) {
+        // The request was made, but the server responded with a status code outside the range of 2xx
+        console.error('Error:', error.response.data);
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error('Error:', error.message);
+      }
+    })
+});
