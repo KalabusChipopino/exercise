@@ -7,16 +7,17 @@ const fs = require('fs');
 const app = express();
 const PORT = 3002;
 const corsOptions = {
-  origin: 'http://127.0.0.1:80',
+  origin: 'http://127.0.0.1:3000',
   methods: 'POST',
   credentials: true,
   optionsSuccessStatus: 204,
 };
 
-const file_latex_log = '/tmp/texput.log';
+const file_latex_log = 'tmp/texput.log';
 
 app.use(bodyParser.text());
 app.use(cors(corsOptions));
+app.use(express.static('tmp'));
 app.listen(PORT, () => { console.log(`Server running at http://localhost:${PORT}/`); });
 
 
@@ -42,7 +43,7 @@ app.post('/', (req, res) => {
     console.log("ERROR:", result.msg)
     res.status(200).json({ success: false, msg: "could not compile latex" });
   } else {
-    res.status(200).json({ success: true, resSvgFilePath: `/tmp/${outputSvgFileNoExtNoPath}.svg` });
+    res.status(200).json({ success: true, resSvgFilePath: `${outputSvgFileNoExtNoPath}.svg` });
   }
 
 });
@@ -75,15 +76,18 @@ function compile(content = '', outputSvgFileNoExtNoPath) {
     return { exitCode: 3, msg: error } // dont give error info of spawnSync in anny responce, only internal
   }
 
+  const output = `${res.stderr.toString()}\n${res.stdout.toString()}`;
+  console.log(output); // TODO: comment this in production
+
   if (res.status === 124) return { exitCode: 1, msg: "latex compilation tymeout" };
-  else if (res.status === 249) return { exitCode: 4, msg: "execution failure" }; // TODO: find exit code
+  else if (res.status === 249) return { exitCode: 4, msg: output }; // TODO: find exit code
 
   else if (res.status) { // error accured, read latex log
     try {
       const errors = fs.readFileSync(file_latex_log, 'utf-8').match(/!.*|l\..*/gm);
       return { exitCode: 1, msg: errors.join('\n').replace(/\n+/g, "\n") };
     } catch (error) {
-      return { exitCode: 5, msg: "error reading latex log" };
+      return { exitCode: 5, msg: output };
     }
   }
 

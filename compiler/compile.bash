@@ -2,15 +2,17 @@
 
 set -e # nodelete, important for latex debug output
 
-echo "$1" > /tmp/texput.tex
+# mkdir tmp
+# touch tmp/texput.tex
+echo "$1" > tmp/texput.tex
 
-timeout 1s pdflatex -interaction=batchmode -halt-on-error --output-directory=/tmp /tmp/texput.tex
+timeout 1s pdflatex -interaction=batchmode -halt-on-error --output-directory="$(pwd)/tmp" tmp/texput.tex
 if [ $? -ne 0 ]; then
   exit -6;
 fi
 
-pdfcrop /tmp/texput.pdf /tmp/texput.pdf
-pdf2svg /tmp/texput.pdf /tmp/$2.svg
+pdfcrop tmp/texput.pdf tmp/texput.pdf
+pdf2svg tmp/texput.pdf tmp/$2.svg
 if [ $? -ne 0 ]; then
   exit -7;
 fi

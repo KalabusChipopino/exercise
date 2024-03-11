@@ -23,10 +23,13 @@ if (toolbarLatexBtn) {
   toolbarLatexBtn.innerHTML = 'Σ';
 }
 
+let latx_session = false;
 function toolbarLatexHandler() {
   const index = quill.getSelection().index || 0;
   quill.insertEmbed(index, 'customImage', { url: "https://clipart-library.com/image_gallery/396690.png" });
   quill.setSelection(index + 1);
+
+  latx_session = quill.getLeaf(index)[0];
 }
 
 
@@ -63,7 +66,15 @@ document.getElementById('latex-btn').addEventListener('click', () => {
     .then(res => {
       const resultElm = document.getElementById('latex-result');
       if(!res?.data?.success) resultElm.value = res.data.msg;
-      else resultElm.value = "success";
+      else {
+        resultElm.value = "success";
+        console.log(res?.data?.resSvgFilePath);
+
+        if (latx_session && latx_session.domNode.tagName === "IMG") {
+          latx_session.domNode.src = `http://127.0.0.1:3002/${res?.data?.resSvgFilePath}`;
+        }
+        latx_session = false;
+      }
     })
     .catch(error => {
       alert("something whent wrong");
