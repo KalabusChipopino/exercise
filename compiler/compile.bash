@@ -2,8 +2,8 @@
 
 set -e # nodelete, important for latex debug output
 
-# mkdir tmp
-# touch tmp/texput.tex
+mkdir -p tmp
+touch tmp/texput.tex
 echo "$1" > tmp/texput.tex
 
 timeout 1s pdflatex -interaction=batchmode -halt-on-error --output-directory="$(pwd)/tmp" tmp/texput.tex
