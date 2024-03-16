@@ -5,6 +5,14 @@
         cursor: pointer;
     }
 }
+.latex-selected {
+    background-color: blueviolet;
+    box-sizing: border-box;
+    &:hover {
+        outline: 2px solid #000;
+        cursor: pointer;
+    }
+}
 .latx-editor {
     background-color: aqua;
     padding-bottom: 18px;
