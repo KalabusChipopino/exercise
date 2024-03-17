@@ -34,18 +34,9 @@ if (toolbarLatexBtn) {
 document.getElementById('compile-btn').addEventListener('click', compileLatex);
 
 // editor focuse event
-document.getElementById("editor").firstChild.onfocus = () => {
-  //latexUnfocuse();
-}
+// document.getElementById("editor").firstChild.onfocus = () => {}
 quill.on('selection-change', function (range, oldRange, source) {
-  // if (range === null && oldRange !== null) {
-  //   latexUnfocuse();
-  // } else if (range !== null && oldRange === null) {
-  //   //blurLatex();
-  // } else {
-  //   //blurLatex();
-  // }
-  if (range !== oldRange && range !== null) {
+  if (range !== null) {
     latexUnfocuse();
   }
 });
@@ -64,7 +55,7 @@ class ImageBlot extends Quill.import('blots/embed') {
     node.getLatex = () => { return node.latex }
 
     node.addEventListener('click', () => latexOnClick(node));
-
+    console.log(node.getLatex())
     return node;
   }
 
@@ -119,7 +110,7 @@ function latexFocuse(node) {
   const latex = node.getLatex();
   if (latex) document.getElementById('latex-textarea').value = latex;
 
-  // quill.blur(); // TODO: this messes with latex_session for some reasone
+  document.getElementById('latex-result').value = '';
 }
 
 function latexOnClick(node) {
