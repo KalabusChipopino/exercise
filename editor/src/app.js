@@ -2,7 +2,7 @@ const axios = require('axios');
 import './index.css';
 
 const POST_URL = 'http://localhost:3002/';
-let latx_session = false;
+let latex_session = false;
 
 
 
@@ -30,33 +30,53 @@ if (toolbarLatexBtn) {
   toolbarLatexBtn.innerHTML = 'Σ';
 }
 
-// compile btn onClick
+// compile btn onClick evt
 document.getElementById('compile-btn').addEventListener('click', compileLatex);
 
 // editor focuse event
 document.getElementById("editor").firstChild.onfocus = () => {
-  latexUnfocuse();
+  //latexUnfocuse();
 }
+quill.on('selection-change', function (range, oldRange, source) {
+  // if (range === null && oldRange !== null) {
+  //   latexUnfocuse();
+  // } else if (range !== null && oldRange === null) {
+  //   //blurLatex();
+  // } else {
+  //   //blurLatex();
+  // }
+  if (range !== oldRange && range !== null) {
+    latexUnfocuse();
+  }
+});
 
 // latex blot
 class ImageBlot extends Quill.import('blots/embed') {
+
   static create(value) {
     const node = super.create();
     node.setAttribute('src', value.url);
     node.setAttribute('alt', value.alt || '');
-    node.setAttribute('class', 'latex-selected');
-    node.addEventListener('click', ()=>latexOnClick(node));
-    //latexFocuse(node);
+    node.setAttribute('class', 'latex');
+
+    node.latex = "";
+    node.setLatex = (str) => { node.latex = str }
+    node.getLatex = () => { return node.latex }
+
+    node.addEventListener('click', () => latexOnClick(node));
+
     return node;
   }
+
   static value(node) {
     return { url: node.getAttribute('src'), alt: node.getAttribute('alt') };
   }
-
   detach() { // on blot removal
     super.detach();
     latexUnfocuse();
   }
+
+
 }
 ImageBlot.blotName = 'customImage';
 ImageBlot.tagName = 'img';
@@ -65,56 +85,76 @@ Quill.register(ImageBlot);
 
 
 
-function latexUnfocuse() {
-    
-  if(latx_session?.setAttribute) {
-    latx_session?.setAttribute('class', 'latex');
-  } else if(latx_session.domNode) {
-    latx_session?.domNode?.classList?.replace('latex-selected', 'latex');
-  }
-  latx_session = false;
 
+function selectLatex(node) {
+  if (node?.setAttribute) {
+    node.setAttribute('class', 'latex-selected');
+  }
+}
+function blurLatex() {
+  if (latex_session?.setAttribute) {
+    latex_session.setAttribute('class', 'latex');
+  }
+}
+
+function latexUnfocuse() {
+
+  if (latex_session?.setAttribute) {
+    latex_session?.setAttribute('class', 'latex');
+  } else if (latex_session.domNode) {
+    latex_session?.domNode?.classList?.replace('latex-selected', 'latex');
+  }
+  latex_session = false;
+
+  blurLatex();
   document.getElementById('latex-editor').style.transform = 'translateY(100%)';
 }
 function latexFocuse(node) {
-  node?.setAttribute && node.setAttribute('class', 'latex-selected');
-  if(latx_session?.domNode?.classList?.replace) {
-    latx_session.domNode.classList.replace('latex', 'latex-selected');
-  }
-  latx_session = node;
+
+  selectLatex(node);
+
+  latex_session = node;
   document.getElementById('latex-editor').style.transform = 'translateY(0%)';
+
+  const latex = node.getLatex();
+  if (latex) document.getElementById('latex-textarea').value = latex;
+
+  // quill.blur(); // TODO: this messes with latex_session for some reasone
 }
+
 function latexOnClick(node) {
-  if(latx_session != node && latx_session) {
+
+  if (latex_session != node && latex_session) {
     // replace exicting latex_session with new one
     latexUnfocuse();
     latexFocuse(node);
-    //quill.blur();
-  } else if(latx_session != node) {
-    // create new latx_session
+  } else if (latex_session != node) {
+    // create new latex_session
     latexFocuse(node);
-    // quill.blur(); // TODO, need to unfocuse, but this makes problems
   } else {
-    // exicting latx_session is clicked
+    // exicting latex_session is clicked
+
     latexUnfocuse();
   }
 }
 function incertNewLatex() {
-  
+
   latexUnfocuse();
 
   const index = quill.getSelection().index || 0;
   quill.insertEmbed(index, 'customImage', { url: "https://clipart-library.com/image_gallery/396690.png" });
   quill.setSelection(index + 1);
 
-  latexFocuse(quill.getLeaf(index + 1)[0]);
+  latexFocuse(quill.getLeaf(index + 1)[0]?.domNode);
+
+  quill.blur();
 }
 function compileLatex() {
 
   // if the compile-btn was pressed,
-  // this must mean that latx_session is not false
+  // this must mean that latex_session is not false
 
-  if (latx_session) {
+  if (latex_session) {
 
     const value = document.getElementById('latex-textarea')?.value;
 
@@ -130,15 +170,15 @@ function compileLatex() {
         if (!res?.data?.success) resultElm.value = res.data.msg;
         else {
 
-          resultElm.value = "success";
-
-          if(latx_session?.domNode?.src) {
-            latx_session.domNode.src = `http://127.0.0.1:3002/${res?.data?.resSvgFilePath}`;
-          } else if (latx_session?.src) {
-            latx_session.src = `http://127.0.0.1:3002/${res?.data?.resSvgFilePath}`;
+          if (latex_session?.src) {
+            latex_session.src = `http://127.0.0.1:3002/${res?.data?.resSvgFilePath}`;
+            latex_session.setLatex(value);
+            resultElm.value = '';
+            latexUnfocuse();
           } else {
             console.log("ERROR 23462346"); // TODO
           }
+
         }
       })
       .catch(error => {
@@ -152,9 +192,6 @@ function compileLatex() {
           // Something happened in setting up the request that triggered an Error
           console.error('Error:', error.message);
         }
-      })
-      .finally(e=>{
-        latexUnfocuse();
       })
 
   } else {
