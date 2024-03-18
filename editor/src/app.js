@@ -46,21 +46,20 @@ class ImageBlot extends Quill.import('blots/embed') {
 
   static create(value) {
     const node = super.create();
-    node.setAttribute('src', value.url);
+    node.setAttribute('src', value.url || '');
     node.setAttribute('alt', value.alt || '');
     node.setAttribute('class', 'latex');
+    node.setAttribute('title', value.title || '');
 
-    node.latex = "";
-    node.setLatex = (str) => { node.latex = str }
-    node.getLatex = () => { return node.latex }
+    node.setLatex = (str) => { node.setAttribute('title', str); }
+    node.getLatex = () => { return node.getAttribute('title'); }
 
     node.addEventListener('click', () => latexOnClick(node));
-    console.log(node.getLatex())
     return node;
   }
 
   static value(node) {
-    return { url: node.getAttribute('src'), alt: node.getAttribute('alt') };
+    return { url: node.getAttribute('src'), alt: node.getAttribute('alt'), title: node.getAttribute('title') };
   }
   detach() { // on blot removal
     super.detach();
@@ -124,7 +123,6 @@ function latexOnClick(node) {
     latexFocuse(node);
   } else {
     // exicting latex_session is clicked
-
     latexUnfocuse();
   }
 }
