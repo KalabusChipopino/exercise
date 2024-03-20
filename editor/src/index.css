@@ -1,3 +1,22 @@
+.menu-bar {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px;
+}
+.menu-btn {
+    background-color: aqua;
+    &:hover {
+        background-color: aquamarine;
+    }
+}
+.menu-btn-selected {
+    background-color: green;
+    &:hover {
+        background-color: darkgreen;
+    }
+}
+
 .latex {
     box-sizing: border-box;
     &:hover {

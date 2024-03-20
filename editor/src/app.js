@@ -12,13 +12,16 @@ const quill = new Quill('#editor', {
   modules: {
     toolbar: {
       container: [
+        [{ 'header': [2, 3, false] }],
         ['bold', 'italic', 'underline', 'strike'],
-        ['image', 'link'],
+        ['link'],
         [{ 'color': [] }, { 'background': [] }],
         ['toolbarLatexBtn'],
+        ['toolbarSaveBtn'],
       ],
       handlers: {
         toolbarLatexBtn: incertNewLatex,
+        toolbarSaveBtn: toolbarSaveBtnHandler,
       },
     },
   },
@@ -28,6 +31,11 @@ const quill = new Quill('#editor', {
 const toolbarLatexBtn = document.querySelector('.ql-toolbarLatexBtn');
 if (toolbarLatexBtn) {
   toolbarLatexBtn.innerHTML = 'Σ';
+}
+// init save btn
+const toolbarSaveBtn = document.querySelector('.ql-toolbarSaveBtn');
+if (toolbarSaveBtn) {
+  toolbarSaveBtn.innerHTML = 'save';
 }
 
 // compile btn onClick evt
@@ -47,19 +55,18 @@ class ImageBlot extends Quill.import('blots/embed') {
   static create(value) {
     const node = super.create();
     node.setAttribute('src', value.url || '');
-    node.setAttribute('alt', value.alt || '');
     node.setAttribute('class', 'latex');
     node.setAttribute('title', value.title || '');
 
     node.setLatex = (str) => { node.setAttribute('title', str); }
-    node.getLatex = () => { return node.getAttribute('title'); }
+    node.getLatex = () => { return node.getAttribute('title') || ''; }
 
     node.addEventListener('click', () => latexOnClick(node));
     return node;
   }
 
   static value(node) {
-    return { url: node.getAttribute('src'), alt: node.getAttribute('alt'), title: node.getAttribute('title') };
+    return { url: node.getAttribute('src'), title: node.getAttribute('title') };
   }
   detach() { // on blot removal
     super.detach();
@@ -189,6 +196,75 @@ function compileLatex() {
   }
 }
 
+function findAllCustomImages(obj, results = []) {
+  if (typeof obj === 'object' && obj !== null) {
+    if ('customImage' in obj) {
+      results.push(obj.customImage.url);
+    } else {
+      for (let key in obj) {
+        findAllCustomImages(obj[key], results);
+      }
+    }
+  }
+  return results;
+}
 
 
 
+
+
+
+const SELECT = {
+  exercise: 'exercise',
+  hint: 'hint',
+  answer: 'answer',
+  explain: 'explain',
+}
+const CONTENT = {
+  exercise: {},
+  hint: {},
+  answer: {},
+  explain: {},
+}
+let selected = SELECT.exercise;
+
+function updateContent(selection) {
+  CONTENT[selected] = quill.getContents()?.ops || {}; // save
+  quill.setContents(CONTENT[selection]); // update
+}
+function select(selection) {
+
+  updateContent(selection);
+
+  const elm = document.getElementById(`${SELECT[selection]}-btn`);
+  const oldElm = document.getElementById(`${selected}-btn`);
+  selected = SELECT[selection];
+
+  elm.classList.add('menu-btn-selected');
+  elm.classList.remove('menu-btn');
+
+  if (elm !== oldElm) {
+    oldElm.classList.add('menu-btn');
+    oldElm.classList.remove('menu-btn-selected');
+  }
+
+  return SELECT[selection];
+}
+function addOnClick(btnName) {
+
+  if (!Object.values(SELECT).includes(btnName)) {
+    // TODO: debug
+  }
+
+  document.getElementById(`${btnName}-btn`).addEventListener('click', () => {
+    select(btnName);
+  });
+}
+function toolbarSaveBtnHandler() {
+  updateContent(selected);
+  // TODO: post request to save exercise
+}
+for (let elm of Object.keys(SELECT)) {
+  addOnClick(elm);
+}
+select(SELECT.exercise);
