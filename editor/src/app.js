@@ -4,7 +4,8 @@ import './index.css';
 const POST_URL = 'http://localhost:3002/';
 let latex_session = false;
 
-
+const topLatex = `\\documentclass{article}\n\\thispagestyle{empty}\n\\begin{document}\n`;
+const bottomLatex = '\\end{document}';
 
 // init quill
 const quill = new Quill('#editor', {
@@ -20,17 +21,22 @@ const quill = new Quill('#editor', {
         ['toolbarSaveBtn'],
       ],
       handlers: {
-        toolbarLatexBtn: incertNewLatex,
-        toolbarSaveBtn: toolbarSaveBtnHandler,
+        toolbarLatexBtn: toolbarLatexBtnHandle,
+        toolbarSaveBtn: toolbarSaveBtnHandle,
       },
     },
   },
 });
 
+// init save btn
+const toolbarMathBtn = document.querySelector('.ql-toolbarMathBtn');
+if (toolbarMathBtn) {
+  toolbarMathBtn.innerHTML = 'Σ';
+}
 // init latex btn
 const toolbarLatexBtn = document.querySelector('.ql-toolbarLatexBtn');
 if (toolbarLatexBtn) {
-  toolbarLatexBtn.innerHTML = 'Σ';
+  toolbarLatexBtn.innerHTML = 'Latex';
 }
 // init save btn
 const toolbarSaveBtn = document.querySelector('.ql-toolbarSaveBtn');
@@ -38,26 +44,34 @@ if (toolbarSaveBtn) {
   toolbarSaveBtn.innerHTML = 'save';
 }
 
+
+
 // compile btn onClick evt
 document.getElementById('compile-btn').addEventListener('click', compileLatex);
-
 // editor focuse event
-// document.getElementById("editor").firstChild.onfocus = () => {}
 quill.on('selection-change', function (range, oldRange, source) {
   if (range !== null) {
     latexUnfocuse();
   }
 });
 
+// caret pos change evt
+quill.on('selection-change', function (range, oldRange, source) {
+  blurLatex();
+});
+
+
+
 // latex blot
-class ImageBlot extends Quill.import('blots/embed') {
+class LatexBlot extends Quill.import('blots/embed') {
 
   static create(value) {
     const node = super.create();
     node.setAttribute('src', value.url || '');
-    node.setAttribute('class', 'latex');
+    node.setAttribute('class', value.class || '');
     node.setAttribute('latex', value.latex || '');
 
+    node.setSrc = (url) => { node.setAttribute('src', url); }
     node.setLatex = (str) => { node.setAttribute('latex', str); }
     node.getLatex = () => { return node.getAttribute('latex') || ''; }
 
@@ -66,7 +80,7 @@ class ImageBlot extends Quill.import('blots/embed') {
   }
 
   static value(node) {
-    return { url: node.getAttribute('src'), latex: node.getAttribute('latex') };
+    return { url: node.getAttribute('src'), latex: node.getAttribute('latex'), class: node.getAttribute('class') };
   }
   detach() { // on blot removal
     super.detach();
@@ -75,9 +89,9 @@ class ImageBlot extends Quill.import('blots/embed') {
 
 
 }
-ImageBlot.blotName = 'customImage';
-ImageBlot.tagName = 'img';
-Quill.register(ImageBlot);
+LatexBlot.blotName = 'latexBlot';
+LatexBlot.tagName = 'img';
+Quill.register(LatexBlot);
 
 
 
@@ -114,6 +128,7 @@ function latexFocuse(node) {
   document.getElementById('latex-editor').style.transform = 'translateY(0%)';
 
   const latex = node.getLatex();
+  console.log("AAAAAAA", latex)
   if (latex) document.getElementById('latex-textarea').value = latex;
 
   document.getElementById('latex-result').value = '';
@@ -133,17 +148,53 @@ function latexOnClick(node) {
     latexUnfocuse();
   }
 }
-function incertNewLatex() {
+function toolbarLatexBtnHandle() {
 
   latexUnfocuse();
 
   const index = quill.getSelection().index || 0;
-  quill.insertEmbed(index, 'customImage', { url: "https://clipart-library.com/image_gallery/396690.png" });
+  quill.insertEmbed(index, 'latexBlot', { url: "https://clipart-library.com/image_gallery/396690.png" });
   quill.setSelection(index + 1);
 
   latexFocuse(quill.getLeaf(index + 1)[0]?.domNode);
 
   quill.blur();
+}
+function compileRawLatex(latex) {
+  return new Promise((resolve, reject) => {
+    axios.post(POST_URL, latex, {
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+    })
+      .then(res => {
+        if (!res?.data?.success) {
+          console.log("ERROR 1234135351"); // TODO: debug
+          resolve(res.data.msg);
+        } else {
+          if (res?.data?.resSvgFilePath) {
+            resolve(`/compiler/tmp/${res.data.resSvgFilePath}`);
+          } else {
+            reject("an error has accured"); // TODO: ast
+          }
+        }
+      })
+      .catch(error => {
+        alert("something whent wrong");
+        if (error.response) {
+          // TODO: debug
+          // The request was made, but the server responded with a status code outside the range of 2xx
+          console.error('ERROR 2352363464', error.response.data);
+          reject("an error has accured"); // TODO: ast
+        } else {
+          // TODO
+          // Something happened in setting up the request that triggered an Error
+          console.error('ERROR 2436237357373', error.message);
+          reject("an error has accured"); // TODO: ast
+        }
+      })
+  });
+
 }
 function compileLatex() {
 
@@ -153,42 +204,14 @@ function compileLatex() {
   if (latex_session) {
 
     const value = document.getElementById('latex-textarea')?.value;
+    const resultElm = document.getElementById('latex-result');
 
-    // send latex to the compiler
-
-    axios.post(POST_URL, value, {
-      headers: {
-        'Content-Type': 'text/plain',
-      },
+    compileRawLatex(value).then((res) => {
+      latex_session.setSrc(res);
+      latex_session.setLatex(value);
+      blurLatex();
+      latex_session = false;
     })
-      .then(res => {
-        const resultElm = document.getElementById('latex-result');
-        if (!res?.data?.success) resultElm.value = res.data.msg;
-        else {
-
-          if (latex_session?.src) {
-            latex_session.src = `http://127.0.0.1:3002/${res?.data?.resSvgFilePath}`;
-            latex_session.setLatex(value);
-            resultElm.value = '';
-            latexUnfocuse();
-          } else {
-            console.log("ERROR 23462346"); // TODO
-          }
-
-        }
-      })
-      .catch(error => {
-        alert("something whent wrong");
-        if (error.response) {
-          // TODO
-          // The request was made, but the server responded with a status code outside the range of 2xx
-          console.error('Error:', error.response.data);
-        } else {
-          // TODO
-          // Something happened in setting up the request that triggered an Error
-          console.error('Error:', error.message);
-        }
-      })
 
   } else {
     // TODO: this should never happen
@@ -196,13 +219,13 @@ function compileLatex() {
   }
 }
 
-function findAllCustomImages(obj, results = []) {
+function findAllLatexBlots(obj, results = []) {
   if (typeof obj === 'object' && obj !== null) {
-    if ('customImage' in obj) {
-      results.push(obj.customImage.url);
+    if ('latexBlot' in obj) {
+      results.push(obj.latexBlot.url);
     } else {
       for (let key in obj) {
-        findAllCustomImages(obj[key], results);
+        findAllLatexBlots(obj[key], results);
       }
     }
   }
@@ -260,7 +283,7 @@ function addOnClick(btnName) {
     select(btnName);
   });
 }
-function toolbarSaveBtnHandler() {
+function toolbarSaveBtnHandle() {
   updateContent(selected);
   // TODO: post request to save exercise
 }
@@ -268,3 +291,10 @@ for (let elm of Object.keys(SELECT)) {
   addOnClick(elm);
 }
 select(SELECT.exercise);
+
+
+
+
+window.addEventListener('load', () => {
+  document.getElementById('latex-textarea').innerHTML = `${topLatex}\n${bottomLatex}`;
+})

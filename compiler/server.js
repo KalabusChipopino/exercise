@@ -29,7 +29,7 @@ app.post('/', (req, res) => {
   if (typeof req?.body !== 'string') {
     res.status(200).json({
       success: false,
-      msg: "could not compile latex" 
+      msg: "could not compile latex"
     });
   }
 
@@ -39,14 +39,62 @@ app.post('/', (req, res) => {
 
   if (result.exitCode === 1) {
     res.status(200).json({ success: false, msg: result.msg });
-  } else if(result.exitCode) {
+  } else if (result.exitCode) {
     console.log("ERROR:", result.msg)
-    res.status(200).json({ success: false, msg: "could not compile latex" });
+    res.status(200).json({ success: false, msg: "could not compile latex" }); // TODO: ast
   } else {
     res.status(200).json({ success: true, resSvgFilePath: `${outputSvgFileNoExtNoPath}.svg` });
   }
 
 });
+app.post('/save', (req, res) => {
+
+  // only exccepts array of strings like so: ['124125125.svg', ...]
+
+  if (typeof req.body !== typeof []) {
+    // TODO: debug: `req.body is of type "${typeof req.body}" but should be of type "${typeof []}"`
+    res.status(500).json({ success: false, msg: 'an error has aqqured' }); // TODO: ast
+  }
+
+  for (let elm of req.body) {
+    
+    if (typeof elm !== typeof '') {
+      // TODO: debug: `"${elm}" is of wrong format`
+      res.status(500).json({ success: false, msg: 'an error has aqured' }); // TODO: ast
+    }
+    if (!/\d*.svg/.test(elm)) {
+      // TODO: debug: `"${elm}" is of wrong format`
+      res.status(500).json({ success: false, msg: 'an error has aqured' }); // TODO: ast
+    }
+
+    // copy files from tmp to latex
+    fs.copyFile(`tmp/${elm}`, `latex/${elm}`, (err) => {
+      if (err) {
+        for (let subElm of req.body) {
+          fs.unlink(`latex/${subElm}`, (err) => {
+            if (err) {
+              // TODO
+              return;
+            }
+          });
+        }
+        // TODO: debug: `"cant copy ${elm} to "latex" dir"`
+        res.status(500).json({ success: false, msg: 'an error has aqured' }); // TODO: ast
+      }
+      
+      // sucecssfully copied files, now delet them from tmp
+      fs.unlink(`tmp/${subElm}`, (err) => {
+        if (err) {
+          // TODO
+          return;
+        }
+      });
+
+    });
+  }
+
+})
+
 
 function compile(content = '', outputSvgFileNoExtNoPath) {
 

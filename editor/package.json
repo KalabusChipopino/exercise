@@ -21,6 +21,8 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "axios": "^1.6.7"
+    "axios": "^1.6.7",
+    "dompurify": "^3.0.9",
+    "sanitize-html": "^2.12.1"
   }
 }

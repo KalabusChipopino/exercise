@@ -10,7 +10,7 @@
 <body>
   <div id="toolbar"></div>
   <div id="editor"></div>
-  
+
   <div class="menu-bar">
     <button id="exercise-btn" class="menu-btn">exercise</button>
     <button id="hint-btn" class="menu-btn">hint</button>
@@ -20,20 +20,14 @@
 
   <div id="latex-editor" class="latex-editor">
     your latex goes here
-  
-    <div class="latex-input-container">
-      <textarea id="latex-textarea" rows="6" cols="50">
-\documentclass{article}
-\thispagestyle{empty}
-\begin{document}
 
-\end{document}
-      </textarea> 
+    <div class="latex-input-container">
+      <textarea id="latex-textarea" rows="6" cols="50"></textarea>
       <button id="compile-btn">compile</button>
     </div>
 
     <div class="latex-result-title">result</div>
-    <textarea id="latex-result" rows="4" cols="50" readonly></textarea>  
+    <textarea id="latex-result" rows="4" cols="50" readonly></textarea>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.0-rc.2/dist/quill.js"></script>
