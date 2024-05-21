@@ -6,7 +6,7 @@ export default function Home() {
     <main className="flex flex-col px-[5vw] pt-[10px] gap-[10px]">
       <div className="flex w-full justify-between ">
         <h1 className="text-[22px]">
-          Title
+          test, test, test
         </h1>
         buttons
       </div>
